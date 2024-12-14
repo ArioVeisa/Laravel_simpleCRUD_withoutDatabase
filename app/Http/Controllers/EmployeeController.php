@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Position;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class EmployeeController extends Controller
@@ -46,10 +48,15 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
+        // Validasi input
         $messages = [
             'required' => ':Attribute harus diisi.',
-            'email' => 'Isi :attribute dengan format yang benar',
-            'numeric' => 'Isi :attribute dengan angka'
+            'email' => 'Isi :attribute dengan format yang benar.',
+            'numeric' => 'Isi :attribute dengan angka.',
+            'file' => ':Attribute harus berupa file.',
+            'mimes' => ':Attribute hanya boleh berupa file dengan tipe: pdf, doc, docx.',
+            'image' => ':Attribute harus berupa gambar.',
+            'max' => ':Attribute tidak boleh lebih besar dari :max kilobytes.'
         ];
     
         $validator = Validator::make($request->all(), [
@@ -57,23 +64,71 @@ class EmployeeController extends Controller
             'lastName' => 'required',
             'email' => 'required|email',
             'age' => 'required|numeric',
+            'position' => 'required|exists:positions,id',
+            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Tambahkan validasi avatar
         ], $messages);
     
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
     
-        // ELOQUENT
-        $employee = New Employee;
+        // Cek dan simpan file CV jika ada
+        $file = $request->file('cv');
+        $originalFilename = null;
+        $encryptedFilename = null;
+    
+        if ($file) {
+            $originalFilename = $file->getClientOriginalName();
+            $encryptedFilename = $file->hashName();
+            $file->store('public/files'); // Simpan CV
+        }
+    
+        // Cek dan simpan file avatar jika ada
+        $avatar = $request->file('avatar');
+        $originalAvatarName = null;
+        $encryptedAvatarName = null;
+    
+        if ($avatar) {
+            $originalAvatarName = $avatar->getClientOriginalName();
+            $encryptedAvatarName = $avatar->hashName();
+            $avatar->store('public/avatars'); // Simpan Avatar
+        }
+    
+        // Simpan data ke database
+        $employee = new Employee();
         $employee->firstname = $request->firstName;
         $employee->lastname = $request->lastName;
         $employee->email = $request->email;
         $employee->age = $request->age;
         $employee->position_id = $request->position;
+    
+        if ($file) {
+            $employee->original_filename = $originalFilename;
+            $employee->encrypted_filename = $encryptedFilename;
+        }
+    
+        if ($avatar) {
+            $employee->original_avatar_name = $originalAvatarName;
+            $employee->encrypted_avatar_name = $encryptedAvatarName;
+        }
+    
         $employee->save();
     
-        return redirect()->route('employees.index');
-    }    
+        // Redirect ke halaman index dengan notifikasi sukses
+        return redirect()->route('employees.index')->with('success', 'Employee berhasil ditambahkan.');
+    }
+    
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Display the specified resource.
@@ -150,4 +205,17 @@ class EmployeeController extends Controller
     return redirect()->route('employees.index');
 
     }
+    
+    public function downloadFile($employeeId)
+    {
+        $employee = Employee::find($employeeId);
+        $encryptedFilename = 'public/files/'.$employee->encrypted_filename;
+        $downloadFilename = Str::lower($employee->firstname.'_'.$employee->lastname.'_cv.pdf');
+
+        if(Storage::exists($encryptedFilename)) {
+            return Storage::download($encryptedFilename, $downloadFilename);
+        }
+    }
+
+
 }

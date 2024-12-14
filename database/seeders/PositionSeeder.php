@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class PositionSeeder extends Seeder
 {
@@ -13,23 +13,26 @@ class PositionSeeder extends Seeder
      */
     public function run(): void
     {
-    DB::table('positions')->insert([
-    [
-    'code' => 'FE',
-    'name' => 'Front End Developer',
-    'description' => 'Front End Developer'
-    ],
-    [
-    'code' => 'BE',
-    'name' => 'Back End Developer',
-    'description' => 'Back End Developer'
-    ],
-    [
-    'code' => 'SA',
-    'name' => 'System Analist',
-    'description' => 'System Analist'
-    ],
-    ]);
+        // Insert predefined positions
+        DB::table('positions')->insert([
+            [
+                'code' => 'FE',
+                'name' => 'Front End Developer',
+                'description' => 'Front End Developer',
+            ],
+            [
+                'code' => 'BE',
+                'name' => 'Back End Developer',
+                'description' => 'Back End Developer',
+            ],
+            [
+                'code' => 'SA',
+                'name' => 'System Analyst',
+                'description' => 'System Analyst',
+            ],
+        ]);
+
+        // Generate additional positions using factory
+        Position::factory()->count(5)->create();
     }
-    
 }

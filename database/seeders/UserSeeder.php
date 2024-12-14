@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
         DB::table('users')->insert([
             'name' => 'Administrator',
             'email' => 'admin@admin',
-            'password' => bcrypt('adminadmin'), // Menggunakan bcrypt untuk mengenkripsi password
+            'password' => bcrypt('adminadmin'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

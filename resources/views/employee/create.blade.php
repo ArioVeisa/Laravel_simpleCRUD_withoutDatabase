@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="container-sm my-5">
-        <form action="{{ route('employees.store') }}" method="POST">
+        <form action="{{ route('employees.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="row justify-content-center">
                 <div class="row justify-content-center">
@@ -57,6 +57,22 @@
                                     @endforeach
                                 </select>
                                 @error('position')
+                                    <div class="text-danger"><small>{{ $message }}</small></div>
+                                @enderror
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label for="avatar" class="form-label">Avatar</label>
+                                <input class="form-control @error('avatar') is-invalid @enderror" type="file"
+                                    name="avatar" id="avatar">
+                                @error('avatar')
+                                    <div class="text-danger"><small>{{ $message }}</small></div>
+                                @enderror
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label for="cv" class="form-label">Curriculum Vitae (CV)</label>
+                                <input type="file" class="form-control @error('cv') is-invalid @enderror" name="cv"
+                                    id="cv">
+                                @error('cv')
                                     <div class="text-danger"><small>{{ $message }}</small></div>
                                 @enderror
                             </div>
