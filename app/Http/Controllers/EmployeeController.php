@@ -17,12 +17,23 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index()
+    // {
+    //     $pageTitle = 'Employee List';
+    //     return view('employee.index', compact('pageTitle'));
+    // }
     public function index()
     {
-        $pageTitle = 'Employee List';
-        return view('employee.index', compact('pageTitle'));
+        $pageTitle = 'Employee List';  // Perbaiki tanda kutip pada string
+        // Hapus atau definisikan fungsi confirmDelete() jika diperlukan
+        // confirmDelete(); 
+        $positions = Position::all();
+        return view('employee.index', [
+            'pageTitle' => $pageTitle,
+            'positions' => $positions
+        ]);
     }
-
+    
     /**
      * Show the form for creating a new resource.
      */
