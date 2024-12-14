@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+
 use App\Models\Position;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -18,15 +20,7 @@ class EmployeeController extends Controller
     public function index()
     {
         $pageTitle = 'Employee List';
-
-        // ELOQUENT
-        $employees = Employee::all();
-    
-        return view('employee.index', [
-            'pageTitle' => $pageTitle,
-            'employees' => $employees
-        ]);
-    
+        return view('employee.index', compact('pageTitle'));
     }
 
     /**
@@ -38,9 +32,8 @@ class EmployeeController extends Controller
 
         // ELOQUENT
         $positions = Position::all();
-    
+
         return view('employee.create', compact('pageTitle', 'positions'));
-    
     }
 
     /**
@@ -58,7 +51,7 @@ class EmployeeController extends Controller
             'image' => ':Attribute harus berupa gambar.',
             'max' => ':Attribute tidak boleh lebih besar dari :max kilobytes.'
         ];
-    
+
         $validator = Validator::make($request->all(), [
             'firstName' => 'required',
             'lastName' => 'required',
@@ -68,33 +61,33 @@ class EmployeeController extends Controller
             'cv' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Tambahkan validasi avatar
         ], $messages);
-    
+
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-    
+
         // Cek dan simpan file CV jika ada
         $file = $request->file('cv');
         $originalFilename = null;
         $encryptedFilename = null;
-    
+
         if ($file) {
             $originalFilename = $file->getClientOriginalName();
             $encryptedFilename = $file->hashName();
             $file->store('public/files'); // Simpan CV
         }
-    
+
         // Cek dan simpan file avatar jika ada
         $avatar = $request->file('avatar');
         $originalAvatarName = null;
         $encryptedAvatarName = null;
-    
+
         if ($avatar) {
             $originalAvatarName = $avatar->getClientOriginalName();
             $encryptedAvatarName = $avatar->hashName();
             $avatar->store('public/avatars'); // Simpan Avatar
         }
-    
+
         // Simpan data ke database
         $employee = new Employee();
         $employee->firstname = $request->firstName;
@@ -102,23 +95,23 @@ class EmployeeController extends Controller
         $employee->email = $request->email;
         $employee->age = $request->age;
         $employee->position_id = $request->position;
-    
+
         if ($file) {
             $employee->original_filename = $originalFilename;
             $employee->encrypted_filename = $encryptedFilename;
         }
-    
+
         if ($avatar) {
             $employee->original_avatar_name = $originalAvatarName;
             $employee->encrypted_avatar_name = $encryptedAvatarName;
         }
-    
+
         $employee->save();
-    
+
         // Redirect ke halaman index dengan notifikasi sukses
         return redirect()->route('employees.index')->with('success', 'Employee berhasil ditambahkan.');
     }
-    
+
 
 
 
@@ -139,9 +132,8 @@ class EmployeeController extends Controller
 
         // ELOQUENT
         $employee = Employee::find($id);
-    
+
         return view('employee.show', compact('pageTitle', 'employee'));
-    
     }
 
     /**
@@ -154,9 +146,8 @@ class EmployeeController extends Controller
         // ELOQUENT
         $positions = Position::all();
         $employee = Employee::find($id);
-    
+
         return view('employee.edit', compact('pageTitle', 'positions', 'employee'));
-    
     }
 
     /**
@@ -169,18 +160,18 @@ class EmployeeController extends Controller
             'email' => 'Isi :attribute dengan format yang benar',
             'numeric' => 'Isi :attribute dengan angka'
         ];
-    
+
         $validator = Validator::make($request->all(), [
             'firstName' => 'required',
             'lastName' => 'required',
             'email' => 'required|email',
             'age' => 'required|numeric',
         ], $messages);
-    
+
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-    
+
         // ELOQUENT
         $employee = Employee::find($id);
         $employee->firstname = $request->firstName;
@@ -189,9 +180,8 @@ class EmployeeController extends Controller
         $employee->age = $request->age;
         $employee->position_id = $request->position;
         $employee->save();
-    
+
         return redirect()->route('employees.index');
-    
     }
 
     /**
@@ -199,23 +189,34 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-      // ELOQUENT
-    Employee::find($id)->delete();
+        // ELOQUENT
+        Employee::find($id)->delete();
 
-    return redirect()->route('employees.index');
-
+        return redirect()->route('employees.index');
     }
-    
+
     public function downloadFile($employeeId)
     {
         $employee = Employee::find($employeeId);
-        $encryptedFilename = 'public/files/'.$employee->encrypted_filename;
-        $downloadFilename = Str::lower($employee->firstname.'_'.$employee->lastname.'_cv.pdf');
+        $encryptedFilename = 'public/files/' . $employee->encrypted_filename;
+        $downloadFilename = Str::lower($employee->firstname . '_' . $employee->lastname . '_cv.pdf');
 
-        if(Storage::exists($encryptedFilename)) {
+        if (Storage::exists($encryptedFilename)) {
             return Storage::download($encryptedFilename, $downloadFilename);
         }
     }
 
+    public function getData(Request $request)
+    {
+        $employees = Employee::with('position'); // Mengambil data karyawan beserta posisi mereka
 
+        if ($request->ajax()) {
+            return DataTables::of($employees) // Gunakan facade DataTables, bukan fungsi datatables()
+                ->addIndexColumn()
+                ->addColumn('actions', function ($employee) {
+                    return view('employee.actions', compact('employee'));
+                })
+                ->make(true); // Menghasilkan output JSON
+        }
+    }
 }
