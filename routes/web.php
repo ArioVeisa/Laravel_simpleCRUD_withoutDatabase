@@ -101,3 +101,4 @@ Route::get('/delete-public-file', function() {
 });
 Route::get('download-file/{employeeId}', [EmployeeController::class, 'downloadFile'])->name('employees.downloadFile');
 Route::get('getEmployees', [EmployeeController::class, 'getData'])->name('employees.getData');
+// Route::get('getEmployees', [EmployeeController::class, 'getData'])->name('employees.getData');
